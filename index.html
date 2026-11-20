@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8C8F94">
+  <title>LeadPredictor — Campaign calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      --panel: #3b82f6;
+      --panel-deep: #2563eb;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--white);
+      background-color: #8c8f94;
+      background-image:
+        radial-gradient(ellipse at 12% 8%, rgb(255 255 255 / 13%), transparent 34%),
+        radial-gradient(ellipse at 88% 82%, rgb(45 52 62 / 13%), transparent 38%),
+        repeating-linear-gradient(117deg, transparent 0 3px, rgb(255 255 255 / 1.4%) 3px 4px);
+    }
+
+    button, input, select { font: inherit; }
+    button, select, input[type="date"], input[type="range"] { cursor: pointer; }
+
+    .app-shell { width: min(1120px, calc(100% - 40px)); margin-inline: auto; padding: 38px 0 52px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 27px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { display: grid; width: 43px; height: 43px; place-items: center; border: 1px solid rgb(255 255 255 / 24%); border-radius: 14px; background: rgb(59 130 246 / 94%); box-shadow: 0 6px 18px rgb(22 57 113 / 19%); }
+    .brand-name { margin: 0; font-size: 19px; font-weight: 750; letter-spacing: -.5px; }
+    .brand-caption { margin: 3px 0 0; color: rgb(255 255 255 / 73%); font-size: 12px; }
+    .live-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 24%); border-radius: 999px; background: rgb(39 47 59 / 13%); color: #fff; font-size: 12px; font-weight: 650; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #b7f7d0; box-shadow: 0 0 10px rgb(183 247 208 / 85%); }
+
+    .main-grid { display: grid; grid-template-columns: minmax(305px, .87fr) minmax(0, 1.4fr); gap: 20px; align-items: stretch; }
+    .panel, .result-card { border: 1px solid rgb(255 255 255 / 17%); border-radius: 16px; background: linear-gradient(145deg, rgb(74 144 255 / 98%), rgb(47 112 231 / 98%)); box-shadow: 0 12px 30px rgb(33 52 83 / 17%), inset 0 1px rgb(255 255 255 / 11%); }
+    .panel { padding: 23px; }
+    .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 21px; }
+    .panel-heading h2, .section-title { margin: 0; font-size: 15px; font-weight: 720; letter-spacing: -.15px; }
+    .panel-heading p { margin: 5px 0 0; color: rgb(255 255 255 / 75%); font-size: 12px; line-height: 1.5; }
+    .section-icon { color: rgb(255 255 255 / 81%); }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 13px; }
+    .field { min-width: 0; }
+    .field label, .field-label { display: block; margin-bottom: 7px; color: rgb(255 255 255 / 95%); font-size: 11px; font-weight: 650; letter-spacing: .2px; }
+    .control, .input-wrap { width: 100%; min-height: 42px; border: 1px solid rgb(255 255 255 / 26%); border-radius: 9px; background: rgb(24 73 163 / 19%); color: #fff; transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+    .control { padding: 0 11px; outline: none; }
+    .control:focus, .input-wrap:focus-within { border-color: rgb(255 255 255 / 82%); background: rgb(24 73 163 / 28%); box-shadow: 0 0 0 3px rgb(255 255 255 / 12%); }
+    .control option { color: #172033; background: #fff; }
+    input[type="date"] { color-scheme: dark; }
+    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .9; }
+    .input-wrap { display: flex; align-items: center; overflow: hidden; }
+    .input-prefix { flex: 0 0 auto; padding-left: 11px; color: rgb(255 255 255 / 84%); font-size: 13px; font-weight: 600; }
+    .input-wrap input { width: 100%; min-width: 0; min-height: 40px; padding: 0 11px 0 7px; border: 0; outline: 0; background: transparent; color: white; font-variant-numeric: tabular-nums; }
+    input::placeholder { color: rgb(255 255 255 / 65%); }
+
+    .chart-panel { min-width: 0; }
+    .chart-heading { margin-bottom: 13px; }
+    .month-count { flex: 0 0 auto; padding: 6px 9px; border: 1px solid rgb(255 255 255 / 23%); border-radius: 8px; color: #fff; font-size: 11px; font-weight: 650; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 7px 49px; color: rgb(255 255 255 / 87%); font-size: 10px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 9px; height: 9px; border: 1px solid rgb(255 255 255 / 75%); border-radius: 3px; }
+    .chart-frame { position: relative; width: 100%; min-height: 223px; }
+    #growth-chart { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart-gridline { stroke: rgb(255 255 255 / 17%); stroke-width: 1; }
+    .chart-axis-text { fill: rgb(255 255 255 / 86%); font-family: inherit; font-size: 10px; }
+    .chart-month-text { fill: #fff; font-family: inherit; font-size: 11px; font-weight: 600; }
+    .prospect-bar { fill: #fff; fill-opacity: .31; transition: width 420ms cubic-bezier(.2,.7,.25,1); }
+    .lead-bar { fill: #fff; fill-opacity: .67; transition: width 420ms cubic-bezier(.2,.7,.25,1); }
+    .customer-bar { fill: #fff; fill-opacity: .97; transition: width 420ms cubic-bezier(.2,.7,.25,1); }
+    .chart-hit-area { fill: transparent; cursor: crosshair; }
+    .chart-hit-area:focus { outline: none; }
+    .chart-hit-area:focus-visible { stroke: #fff; stroke-width: 1.5; }
+    .chart-tooltip { position: absolute; z-index: 2; display: none; min-width: 166px; padding: 11px 12px; border: 1px solid rgb(255 255 255 / 27%); border-radius: 10px; background: #1d4fae; box-shadow: 0 8px 22px rgb(13 35 74 / 28%); pointer-events: none; color: #fff; font-size: 11px; line-height: 1.75; }
+    .chart-tooltip.is-visible { display: block; }
+    .tooltip-title { margin-bottom: 3px; color: rgb(255 255 255 / 82%); font-size: 10px; font-weight: 700; letter-spacing: .45px; text-transform: uppercase; }
+    .tooltip-row { display: flex; justify-content: space-between; gap: 16px; }
+    .tooltip-value { font-weight: 750; font-variant-numeric: tabular-nums; }
+    .chart-axis-label { margin: -2px 0 0 49px; color: rgb(255 255 255 / 77%); font-size: 10px; }
+
+    .rates-panel { margin-top: 20px; }
+    .rates-header { margin-bottom: 19px; }
+    .rates-header p { margin: 5px 0 0; color: rgb(255 255 255 / 75%); font-size: 12px; }
+    .sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+    .slider-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .slider-label { color: #fff; font-size: 12px; font-weight: 650; }
+    .slider-value { min-width: 64px; color: #fff; font-size: 13px; font-weight: 760; text-align: right; font-variant-numeric: tabular-nums; }
+    input[type="range"] { display: block; width: 100%; height: 5px; margin: 0; border-radius: 99px; appearance: none; background: rgb(255 255 255 / 34%); outline: none; }
+    input[type="range"]::-webkit-slider-thumb { width: 17px; height: 17px; border: 3px solid #fff; border-radius: 50%; appearance: none; background: #2563eb; box-shadow: 0 2px 7px rgb(20 54 113 / 27%); }
+    input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 3px solid #fff; border-radius: 50%; background: #2563eb; box-shadow: 0 2px 7px rgb(20 54 113 / 27%); }
+    input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgb(255 255 255 / 25%); }
+    .slider-scale { display: flex; justify-content: space-between; margin-top: 7px; color: rgb(255 255 255 / 68%); font-size: 10px; }
+
+    .results-section { margin-top: 27px; }
+    .results-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+    .results-heading h2 { margin: 0; color: #fff; font-size: 15px; font-weight: 720; }
+    .results-heading p { margin: 0; color: rgb(255 255 255 / 77%); font-size: 11px; }
+    .results-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .result-card { min-width: 0; padding: 18px; transition: transform 180ms ease, box-shadow 180ms ease; }
+    .result-card:hover { transform: translateY(-2px); box-shadow: 0 17px 35px rgb(33 52 83 / 22%), inset 0 1px rgb(255 255 255 / 11%); }
+    .result-topline { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+    .result-label { color: rgb(255 255 255 / 86%); font-size: 11px; font-weight: 650; letter-spacing: .35px; text-transform: uppercase; }
+    .result-badge { padding: 5px 8px; border: 1px solid rgb(255 255 255 / 26%); border-radius: 999px; background: rgb(255 255 255 / 11%); color: #fff; font-size: 10px; font-weight: 720; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .result-number { display: block; overflow: hidden; margin: 17px 0 4px; color: #fff; font-size: clamp(26px, 3.4vw, 37px); font-weight: 760; letter-spacing: -1.4px; line-height: 1.1; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    .result-caption { color: rgb(255 255 255 / 71%); font-size: 11px; }
+    .progress-track { height: 5px; overflow: hidden; margin-top: 18px; border-radius: 999px; background: rgb(255 255 255 / 24%); }
+    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: #fff; transition: width 480ms cubic-bezier(.2,.7,.25,1); }
+    .footnote { margin: 14px 0 0; color: rgb(255 255 255 / 73%); font-size: 10px; line-height: 1.6; text-align: right; }
+
+    @media (max-width: 760px) {
+      .app-shell { width: min(620px, calc(100% - 28px)); padding-top: 26px; }
+      .main-grid { grid-template-columns: 1fr; }
+      .chart-frame { min-height: 200px; }
+    }
+
+    @media (max-width: 520px) {
+      .app-shell { width: calc(100% - 24px); padding-top: 20px; }
+      .topbar { margin-bottom: 19px; }
+      .live-badge { padding: 7px 9px; font-size: 10px; }
+      .panel { padding: 18px; border-radius: 14px; }
+      .field-grid { gap: 13px 10px; }
+      .control { padding-inline: 8px; font-size: 12px; }
+      .input-prefix { padding-left: 9px; }
+      .input-wrap input { padding-right: 8px; padding-left: 5px; font-size: 13px; }
+      .sliders-grid { grid-template-columns: 1fr; gap: 20px; }
+      .rates-panel { margin-top: 14px; }
+      .results-section { margin-top: 23px; }
+      .results-grid { grid-template-columns: 1fr; gap: 11px; }
+      .result-card { padding: 15px 17px; }
+      .result-number { margin: 10px 0 3px; font-size: 32px; }
+      .progress-track { margin-top: 13px; }
+      .footnote { text-align: left; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path d="M4 5h16l-6.2 7.1v5.3L10.2 19v-6.9L4 5Z" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16.5 16.3v3.2m0 0-1.6-1.6m1.6 1.6 1.6-1.6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-name">LeadPredictor</h1>
+          <p class="brand-caption">Plan your campaign with confidence</p>
+        </div>
+      </div>
+      <div class="live-badge"><span class="live-dot" aria-hidden="true"></span>Live forecast</div>
+    </header>
+
+    <section class="main-grid" aria-label="Campaign setup and growth forecast">
+      <section class="panel" aria-labelledby="campaign-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="campaign-title">Campaign inputs</h2>
+            <p>Set your targets and campaign timeline.</p>
+          </div>
+          <svg class="section-icon" width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 4h14l-5.3 6v5.1L10.3 17v-7L5 4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="language">Language</label>
+            <select class="control" id="language" aria-label="Language">
+              <option value="en">English</option>
+              <option value="bg">Bulgarian</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select class="control" id="currency">
+              <option value="USD">$ US Dollar</option>
+              <option value="EUR">€ Euro</option>
+              <option value="BGN">лв. BGN</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="start-date">Campaign start</label>
+            <input class="control" id="start-date" type="date" value="2026-05-08">
+          </div>
+          <div class="field">
+            <label for="end-date">Campaign end</label>
+            <input class="control" id="end-date" type="date" value="2026-11-04">
+          </div>
+          <div class="field">
+            <label for="revenue">Total revenue</label>
+            <div class="input-wrap">
+              <span class="input-prefix" id="revenue-symbol">$</span>
+              <input id="revenue" type="number" min="0" step="100" value="10000" inputmode="decimal" aria-label="Total revenue">
+            </div>
+          </div>
+          <div class="field">
+            <label for="order-value">Avg. order value</label>
+            <div class="input-wrap">
+              <span class="input-prefix" id="order-symbol">$</span>
+              <input id="order-value" type="number" min="1" step="50" value="1000" inputmode="decimal" aria-label="Average order value">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel chart-panel" aria-labelledby="chart-title">
+        <div class="panel-heading chart-heading">
+          <div>
+            <h2 id="chart-title">Monthly growth forecast</h2>
+            <p>Cumulative targets across your campaign.</p>
+          </div>
+          <span class="month-count" id="month-count">6 months</span>
+        </div>
+        <div class="chart-legend" aria-label="Chart legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:rgb(255 255 255 / 38%)"></span>Prospects</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:rgb(255 255 255 / 72%)"></span>Leads</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#fff"></span>Customers</span>
+        </div>
+        <div class="chart-frame">
+          <svg id="growth-chart" viewBox="0 0 620 212" role="img" aria-label="Cumulative monthly prospects, leads, and customers">
+            <g id="chart-grid"></g>
+            <g id="chart-bars"></g>
+          </svg>
+          <div class="chart-tooltip" id="chart-tooltip" role="status" aria-live="polite"></div>
+        </div>
+        <p class="chart-axis-label">People (cumulative)</p>
+      </section>
+    </section>
+
+    <section class="panel rates-panel" aria-labelledby="rates-title">
+      <div class="panel-heading rates-header">
+        <div>
+          <h2 id="rates-title">Conversion assumptions</h2>
+          <p>Fine-tune your funnel rates to see what it takes.</p>
+        </div>
+        <svg class="section-icon" width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h16M4 17h16M8 4v6m8 7v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <circle cx="8" cy="7" r="2" fill="#3b82f6" stroke="white" stroke-width="1.6"/>
+          <circle cx="16" cy="17" r="2" fill="#3b82f6" stroke="white" stroke-width="1.6"/>
+        </svg>
+      </div>
+      <div class="sliders-grid">
+        <div class="slider-field">
+          <div class="slider-topline">
+            <label class="slider-label" for="lead-rate">Lead response rate</label>
+            <output class="slider-value" id="lead-rate-value" for="lead-rate">40.00%</output>
+          </div>
+          <input id="lead-rate" type="range" min="1" max="100" step="0.01" value="40" aria-label="Lead response rate">
+          <div class="slider-scale"><span>1%</span><span>100%</span></div>
+        </div>
+        <div class="slider-field">
+          <div class="slider-topline">
+            <label class="slider-label" for="prospect-rate">Prospect response rate</label>
+            <output class="slider-value" id="prospect-rate-value" for="prospect-rate">20.00%</output>
+          </div>
+          <input id="prospect-rate" type="range" min="1" max="100" step="0.01" value="20" aria-label="Prospect response rate">
+          <div class="slider-scale"><span>1%</span><span>100%</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-section" aria-labelledby="results-title">
+      <div class="results-heading">
+        <h2 id="results-title">Your campaign targets</h2>
+        <p>Required to reach your revenue goal</p>
+      </div>
+      <div class="results-grid" aria-live="polite" aria-atomic="false">
+        <article class="result-card">
+          <div class="result-topline">
+            <span class="result-label">Prospects</span>
+            <span class="result-badge">100%</span>
+          </div>
+          <strong class="result-number" id="prospects-total">125</strong>
+          <span class="result-caption">people to reach</span>
+          <div class="progress-track" role="progressbar" aria-label="Prospects relative volume" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="prospects-progress"></div>
+          </div>
+        </article>
+        <article class="result-card">
+          <div class="result-topline">
+            <span class="result-label">Leads</span>
+            <span class="result-badge" id="leads-badge">20.00%</span>
+          </div>
+          <strong class="result-number" id="leads-total">25</strong>
+          <span class="result-caption">qualified prospects</span>
+          <div class="progress-track" id="leads-track" role="progressbar" aria-label="Leads as a percentage of prospects" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="leads-progress"></div>
+          </div>
+        </article>
+        <article class="result-card">
+          <div class="result-topline">
+            <span class="result-label">Customers</span>
+            <span class="result-badge" id="customers-badge">8.00%</span>
+          </div>
+          <strong class="result-number" id="customers-total">10</strong>
+          <span class="result-caption">to hit your revenue goal</span>
+          <div class="progress-track" id="customers-track" role="progressbar" aria-label="Customers as a percentage of prospects" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="customers-progress"></div>
+          </div>
+        </article>
+      </div>
+      <p class="footnote">Targets round up to whole people. Monthly milestones are distributed evenly across the campaign.</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const byId = (id) => document.getElementById(id);
+      const inputs = {
+        startDate: byId("start-date"),
+        endDate: byId("end-date"),
+        revenue: byId("revenue"),
+        orderValue: byId("order-value"),
+        currency: byId("currency"),
+        leadRate: byId("lead-rate"),
+        prospectRate: byId("prospect-rate")
+      };
+      const countFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+      const currencySymbols = { USD: "$", EUR: "€", BGN: "лв." };
+      const numberAnimations = new Map();
+      const chart = byId("growth-chart");
+      const tooltip = byId("chart-tooltip");
+      const chartWidth = 620;
+      const chartHeight = 212;
+      const chartMargin = { left: 47, right: 12, top: 10, bottom: 24 };
+
+      function elapsedMonths(startValue, endValue) {
+        const start = new Date(`${startValue}T12:00:00`);
+        const end = new Date(`${endValue}T12:00:00`);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return 1;
+        const averageMonthDays = 365.2425 / 12;
+        return Math.max(1, Math.ceil((end - start) / (averageMonthDays * 86400000)));
+      }
+
+      function countUp(element, target) {
+        const previous = numberAnimations.get(element);
+        if (previous) cancelAnimationFrame(previous.frame);
+        const start = previous ? previous.current : Number(element.dataset.value || target);
+        const duration = 360;
+        let startedAt;
+        const animate = (timestamp) => {
+          if (startedAt === undefined) startedAt = timestamp;
+          const progress = Math.min(1, (timestamp - startedAt) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(start + (target - start) * eased);
+          element.textContent = countFormatter.format(current);
+          if (progress === 1) {
+            element.dataset.value = String(target);
+            numberAnimations.delete(element);
+          } else {
+            numberAnimations.set(element, { frame: requestAnimationFrame(animate), current });
+          }
+        };
+        numberAnimations.set(element, { frame: requestAnimationFrame(animate), current: start });
+      }
+
+      function drawChart(prospects, leads, customers, months) {
+        const gridGroup = byId("chart-grid");
+        const barsGroup = byId("chart-bars");
+        const plotWidth = chartWidth - chartMargin.left - chartMargin.right;
+        const plotHeight = chartHeight - chartMargin.top - chartMargin.bottom;
+        const maximum = Math.max(1, prospects);
+        const interval = maximum / 4;
+        let gridMarkup = "";
+
+        for (let tick = 0; tick <= 4; tick += 1) {
+          const x = chartMargin.left + (plotWidth * tick) / 4;
+          const value = Math.round(interval * tick);
+          gridMarkup += `<line class="chart-gridline" x1="${x}" y1="${chartMargin.top}" x2="${x}" y2="${chartHeight - chartMargin.bottom}"></line>`;
+          gridMarkup += `<text class="chart-axis-text" x="${x}" y="${chartHeight - 5}" text-anchor="middle">${countFormatter.format(value)}</text>`;
+        }
+
+        const rowHeight = plotHeight / months;
+        let barsMarkup = "";
+        for (let index = 0; index < months; index += 1) {
+          const monthNumber = index + 1;
+          const y = chartMargin.top + rowHeight * (index + 0.5);
+          const monthProspects = Math.ceil((prospects * monthNumber) / months);
+          const monthLeads = Math.ceil((leads * monthNumber) / months);
+          const monthCustomers = Math.ceil((customers * monthNumber) / months);
+          const barHeight = Math.max(4, Math.min(13, rowHeight * 0.52));
+          const center = y - barHeight / 2;
+          const width = (value) => Math.max(value > 0 ? 2 : 0, (value / maximum) * plotWidth);
+          const aria = `Month ${monthNumber}: ${countFormatter.format(monthProspects)} prospects, ${countFormatter.format(monthLeads)} leads, ${countFormatter.format(monthCustomers)} customers`;
+
+          barsMarkup += `<text class="chart-month-text" x="${chartMargin.left - 10}" y="${y + 4}" text-anchor="end">M${monthNumber}</text>`;
+          barsMarkup += `<rect class="prospect-bar" x="${chartMargin.left}" y="${center}" width="${width(monthProspects)}" height="${barHeight}" rx="4"></rect>`;
+          barsMarkup += `<rect class="lead-bar" x="${chartMargin.left}" y="${center + barHeight * 0.19}" width="${width(monthLeads)}" height="${barHeight * 0.62}" rx="3"></rect>`;
+          barsMarkup += `<rect class="customer-bar" x="${chartMargin.left}" y="${center + barHeight * 0.34}" width="${width(monthCustomers)}" height="${barHeight * 0.32}" rx="2"></rect>`;
+          barsMarkup += `<rect class="chart-hit-area" x="${chartMargin.left - 43}" y="${chartMargin.top + rowHeight * index}" width="${plotWidth + 43}" height="${rowHeight}" tabindex="0" role="img" aria-label="${aria}" data-month="${monthNumber}" data-prospects="${monthProspects}" data-leads="${monthLeads}" data-customers="${monthCustomers}"></rect>`;
+        }
+
+        gridGroup.innerHTML = gridMarkup;
+        barsGroup.innerHTML = barsMarkup;
+        byId("month-count").textContent = `${months} ${months === 1 ? "month" : "months"}`;
+
+        barsGroup.querySelectorAll(".chart-hit-area").forEach((row) => {
+          row.addEventListener("pointerenter", (event) => showTooltip(event, row));
+          row.addEventListener("pointermove", (event) => positionTooltip(event));
+          row.addEventListener("pointerleave", hideTooltip);
+          row.addEventListener("focus", () => showTooltip(null, row));
+          row.addEventListener("blur", hideTooltip);
+        });
+      }
+
+      function showTooltip(event, row) {
+        tooltip.innerHTML =
+          `<div class="tooltip-title">Month ${row.dataset.month} · cumulative</div>` +
+          `<div class="tooltip-row"><span>Prospects</span><span class="tooltip-value">${countFormatter.format(Number(row.dataset.prospects))}</span></div>` +
+          `<div class="tooltip-row"><span>Leads</span><span class="tooltip-value">${countFormatter.format(Number(row.dataset.leads))}</span></div>` +
+          `<div class="tooltip-row"><span>Customers</span><span class="tooltip-value">${countFormatter.format(Number(row.dataset.customers))}</span></div>`;
+        tooltip.classList.add("is-visible");
+        if (event) positionTooltip(event);
+        else {
+          const frameRect = byId("growth-chart").getBoundingClientRect();
+          const rowRect = row.getBoundingClientRect();
+          positionTooltip({
+            clientX: frameRect.left + Math.min(frameRect.width - 90, 200),
+            clientY: rowRect.top + rowRect.height / 2
+          });
+        }
+      }
+
+      function positionTooltip(event) {
+        const frame = byId("growth-chart");
+        const frameRect = frame.getBoundingClientRect();
+        const left = Math.max(4, Math.min(event.clientX - frameRect.left + 12, frameRect.width - 180));
+        const top = Math.max(3, Math.min(event.clientY - frameRect.top - 37, frameRect.height - 107));
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      }
+
+      function hideTooltip() {
+        tooltip.classList.remove("is-visible");
+      }
+
+      function update() {
+        const revenueInput = Number(inputs.revenue.value);
+        const orderInput = Number(inputs.orderValue.value);
+        const revenue = Number.isFinite(revenueInput) ? Math.max(0, revenueInput) : 0;
+        const orderValue = Number.isFinite(orderInput) ? Math.max(1, orderInput) : 1;
+        const leadRate = Math.max(1, Number(inputs.leadRate.value) || 1);
+        const prospectRate = Math.max(1, Number(inputs.prospectRate.value) || 1);
+        const customers = Math.ceil(revenue / orderValue);
+        const leads = Math.ceil((customers * 100) / leadRate);
+        const prospects = Math.ceil((leads * 100) / prospectRate);
+        const leadShare = prospects ? (leads / prospects) * 100 : 0;
+        const customerShare = prospects ? (customers / prospects) * 100 : 0;
+
+        if (Number(inputs.orderValue.value) < 1) inputs.orderValue.value = "1";
+        byId("lead-rate-value").textContent = `${leadRate.toFixed(2)}%`;
+        byId("prospect-rate-value").textContent = `${prospectRate.toFixed(2)}%`;
+        byId("leads-badge").textContent = `${prospectRate.toFixed(2)}%`;
+        byId("customers-badge").textContent = `${customerShare.toFixed(2)}%`;
+
+        countUp(byId("prospects-total"), prospects);
+        countUp(byId("leads-total"), leads);
+        countUp(byId("customers-total"), customers);
+
+        byId("prospects-progress").style.width = "100%";
+        byId("leads-progress").style.width = `${Math.max(0, Math.min(100, leadShare))}%`;
+        byId("customers-progress").style.width = `${Math.max(0, Math.min(100, customerShare))}%`;
+        byId("leads-track").setAttribute("aria-valuenow", leadShare.toFixed(2));
+        byId("customers-track").setAttribute("aria-valuenow", customerShare.toFixed(2));
+
+        const symbol = currencySymbols[inputs.currency.value] || "$";
+        byId("revenue-symbol").textContent = symbol;
+        byId("order-symbol").textContent = symbol;
+
+        const months = elapsedMonths(inputs.startDate.value, inputs.endDate.value);
+        drawChart(prospects, leads, customers, months);
+      }
+
+      Object.values(inputs).forEach((input) => {
+        input.addEventListener("input", update);
+        input.addEventListener("change", update);
+      });
+
+      update();
+    })();
+  </script>
+</body>
+</html>
